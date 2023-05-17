@@ -11,12 +11,13 @@ drone = Drone()
 drone.initialize()
 flight: Flight = drone.flight
 camera: Camera = drone.camera
-camera.start_video_stream()
+camera.start_video_stream(display = True)
 
 # image = cv2.imread('test2.jpg', cv2.IMREAD_COLOR)
 # height, width = image.shape[:2]
 # size = (1280, 720) # delete when using frame
 # image = cv2.resize(image, size) # too
+flight.takeoff()
 while True:
     image = camera.read_cv2_image(strategy = "newest")
     corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters=aruco_params)
@@ -25,7 +26,7 @@ while True:
     bottomCenter = [0,0]
     times=3
     camera_center = (640, 360)
-    
+
     if len(corners) > 0:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
@@ -60,3 +61,4 @@ while True:
     else:
         flight.rc((camera_center[0]-cX)/640, (camera_center[1]-cY+times*(bottomCenter[1]-topCenter[1]))/360, 1)
         # a:y b:z c:x
+flight.land()
