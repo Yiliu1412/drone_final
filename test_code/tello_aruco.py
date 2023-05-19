@@ -1,17 +1,18 @@
-import robomaster
+import recognition
+import time
 from robomaster import config
 from robomaster.robot import Drone
 from robomaster.flight import Flight
 from robomaster.camera import Camera
-import cv2
 import cv2.aruco
-import time
 
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 aruco_params = cv2.aruco.DetectorParameters()
 times = 3
 camera_center = (640, 360)
-config.LOCAL_IP_STR='192.168.10.2'
+config.LOCAL_IP_STR = '192.168.10.2'
+currentCount = 0
+
 drone = Drone()
 drone.initialize()
 print(drone.get_drone_version())
@@ -21,10 +22,14 @@ camera: Camera = drone.camera
 camera.start_video_stream(display = True)
 
 flight.takeoff()
+
+# rcg = recognition.Recognizer()
+# gesture, finger = rcg.step()
+
 while True:
     image = camera.read_cv2_image(strategy = "newest")
-    size = (1280, 720) # delete when using frame
-    image = cv2.resize(image, size) # too
+    size = (1280, 720)  # delete when using frame
+    image = cv2.resize(image, size)  # too
     corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters = aruco_params)
     cX, cY = (0, 0)
     topCenter = [0, 0]
@@ -34,8 +39,11 @@ while True:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
             # TOP-LEFT, TOP-RIGHT, BOTTOM-RIGHT, BOTTOM-LEFT
-            if markerID != 10 :
-                continue
+            # if currentCount == 0 and markerID != gesture:
+            #     continue
+            # elif currentCount == 1 and markerID != 30:
+            #     continue
+            currentCount = currentCount + 1
             corners = markerCorner.reshape((4, 2))
             (topLeft, topRight, bottomRight, bottomLeft) = corners
             topRight = (int(topRight[0]), int(topRight[1]))
@@ -51,7 +59,7 @@ while True:
             cX = int((topLeft[0] + bottomRight[0]) / 2.0)
             cY = int((topLeft[1] + bottomRight[1]) / 2.0)
             topCenter = ((topLeft[0] + topRight[0]) / 2, (topLeft[1] + topRight[1]) / 2)
-            bottomCenter = ((bottomRight[0]+bottomLeft[0])/2, (bottomRight[1]+bottomLeft[1])/2)
+            bottomCenter = ((bottomRight[0] + bottomLeft[0]) / 2, (bottomRight[1] + bottomLeft[1]) / 2)
             # print(cX, cY)
             # cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
             # cv2.circle(image, (camera_center[0], camera_center[1]), 4, (0, 0, 255), -1)
@@ -65,13 +73,14 @@ while True:
             print("Objective: {} {}".format(cX, cY - times * (bottomCenter[1] - topCenter[1])))
             print((cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2)
 
-            if (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
+            if (cX - camera_center[0]) ** 2 + (
+                    camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
                 flight.rc(0, 10, 0)
                 print('forward')
 
             else:
                 flight.rc((cX - camera_center[0]) * 50 / 640, 0,
-                            (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360)
+                          (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360)
                 # a:y b:z c:x
                 print("calibrate")
             time.sleep(1)
