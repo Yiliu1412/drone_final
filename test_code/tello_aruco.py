@@ -21,16 +21,27 @@ print(drone.get_drone_version())
 print(drone.get_sn())
 flight: Flight = drone.flight
 camera: Camera = drone.camera
-camera.start_video_stream(display = True)
-
+rcg = recognition.Recognizer(display=True, debug=True)
+camera.start_video_stream(display=False)
+testCount=0
 flight.takeoff().wait_for_completed()
 while True:
     image = camera.read_cv2_image(strategy = "newest")
-    rcg = recognition.Recognizer(display = True)
-    gesture, finger = rcg.step(image) # // 3: right and left, % 3 :1, 2, 3
-    if gesture is not None:
+    gesture, count = rcg.step(image) # // 3: right and left, % 3 :1, 2, 3
+    cv2.imshow('video', image)
+    cv2.waitKey(1)
+    flight.stop()
+    # testCount = testCount + 1
+    # if testCount == 1000:
+    #     flight.land()
+    #     exit(0)
+    # time.sleep()
+    print(gesture, count)
+    if count >= 2:
         break
-
+cv2.destroyWindow('video')
+# flight.land()
+# exit(0)
 while True:
     image = camera.read_cv2_image(strategy = "newest")
     corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters = aruco_params)
@@ -42,7 +53,7 @@ while True:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
             # TOP-LEFT, TOP-RIGHT, BOTTOM-RIGHT, BOTTOM-LEFT
-            if currentCount == 0 and markerID != 10 * gesture + 10:
+            if currentCount == 0 and markerID != 10 * (gesture // 3) + 10:
                 continue
             elif currentCount == 1 and markerID != 30:
                 continue
@@ -81,7 +92,7 @@ while True:
 
         if (cX - camera_center[0]) ** 2 + (
                 camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
-            flight.rc(-5, 35, 0)
+            flight.rc(0, 35, 0)
             print('forward')
             time.sleep(5)
             currentCount = currentCount + 1
@@ -130,11 +141,11 @@ while True:
         # cv2.waitKey()
         # cv2.destroyAllWindows()
         if abs(x - camera_center[0]) <= 100:
-            flight.rc(0, 30, 0)
+            flight.rc(0, 35, 0)
             time.sleep(7)
             flight.rotate(80).wait_for_completed()
             currentCount = currentCount + 1
-            flight.stop()
+            flight.land()
         else:
             flight.rc((x - camera_center[0]) * 45 / 480, 0, 0)
 # flight.land()
