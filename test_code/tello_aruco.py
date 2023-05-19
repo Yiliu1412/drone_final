@@ -9,6 +9,8 @@ import time
 
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 aruco_params = cv2.aruco.DetectorParameters()
+times = 3
+camera_center = (640, 360)
 config.LOCAL_IP_STR='192.168.10.2'
 drone = Drone()
 drone.initialize()
@@ -16,27 +18,16 @@ print(drone.get_drone_version())
 print(drone.get_sn())
 flight: Flight = drone.flight
 camera: Camera = drone.camera
-#camera.start_video_stream(display = True)
+camera.start_video_stream(display = True)
 
-# image = cv2.imread('test2.jpg', cv2.IMREAD_COLOR)
-# height, width = image.shape[:2]
-# size = (1280, 720) # delete when using frame
-# image = cv2.resize(image, size) # too
-# flight.takeoff()
-
-
-cv2.imwrite('test3.jpg', image)
-exit(0);
 while True:
     image = camera.read_cv2_image(strategy = "newest")
-    cv2.imwrite('../test3.jpg',image)
-    break
+    size = (1280, 720) # delete when using frame
+    image = cv2.resize(image, size) # too
     corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters = aruco_params)
     cX, cY = (0, 0)
     topCenter = [0, 0]
     bottomCenter = [0, 0]
-    times = 3
-    camera_center = (640, 360)
 
     if len(corners) > 0:
         ids = ids.flatten()
@@ -68,16 +59,17 @@ while True:
             # cv2.waitKey(0)
             print('bottomCenter: {}, topCenter: {}'.format(bottomCenter[1], topCenter[1]))
             print('cX: {}, cY: {}\nheight: {}\n'.format(cX, cY, bottomCenter[1] - topCenter[1]))
-            print("Objective: {} {}".format(-cX + camera_center[0], camera_center[1] - cY ))
-            print((cX - camera_center[0]) ** 2 + (camera_center[1] - cY - times * (bottomCenter[1] - topCenter[1])) ** 2)
-            time.sleep(1)
-        if (cX - camera_center[0]) ** 2 + (camera_center[1] - cY - times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
-            #flight.rc(0, 0, 10)
-            print('forward')
+            print("Objective: {} {}".format(cX, cY - times * (bottomCenter[1] - topCenter[1])))
+            print((cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2)
 
-        else:
-            # flight.rc((camera_center[0] - cX) * 50 / 640,
-            #           (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360, 10)
-            # a:y b:z c:x
-            print("calibrate")
+            if (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
+                #flight.rc(0, 0, 10)
+                print('forward')
+
+            else:
+                # flight.rc((camera_center[0] - cX) * 50 / 640,
+                #           (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360, 10)
+                # a:y b:z c:x
+                print("calibrate")
+            time.sleep(1)
 # flight.land()
