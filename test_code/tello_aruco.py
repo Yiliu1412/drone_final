@@ -1,4 +1,4 @@
-import recognition
+#import recognition
 import time
 from robomaster import config
 from robomaster.robot import Drone
@@ -9,8 +9,8 @@ import cv2.aruco
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 aruco_params = cv2.aruco.DetectorParameters()
 times = 3
-camera_center = (640, 360)
-config.LOCAL_IP_STR = '192.168.10.2'
+camera_center = (480, 360)
+config.LOCAL_IP_STR = '192.168.10.3'
 currentCount = 0
 
 drone = Drone()
@@ -21,15 +21,13 @@ flight: Flight = drone.flight
 camera: Camera = drone.camera
 camera.start_video_stream(display = True)
 
-flight.takeoff()
+flight.takeoff().wait_for_completed()
 
 # rcg = recognition.Recognizer()
 # gesture, finger = rcg.step()
 
 while True:
     image = camera.read_cv2_image(strategy = "newest")
-    size = (1280, 720)  # delete when using frame
-    image = cv2.resize(image, size)  # too
     corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters = aruco_params)
     cX, cY = (0, 0)
     topCenter = [0, 0]
@@ -43,7 +41,9 @@ while True:
             #     continue
             # elif currentCount == 1 and markerID != 30:
             #     continue
-            currentCount = currentCount + 1
+            if markerID != 20:
+                continue
+
             corners = markerCorner.reshape((4, 2))
             (topLeft, topRight, bottomRight, bottomLeft) = corners
             topRight = (int(topRight[0]), int(topRight[1]))
@@ -75,13 +75,18 @@ while True:
 
             if (cX - camera_center[0]) ** 2 + (
                     camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
-                flight.rc(0, 10, 0)
+                flight.rc(-5, 20, 0)
                 print('forward')
-
+                delay(2)
+                flight.land()
+                currentCount = currentCount + 1
+                exit(0)
             else:
-                flight.rc((cX - camera_center[0]) * 50 / 640, 0,
-                          (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360)
+                flight.rc((cX - camera_center[0]) * 40 / 640, 0,
+                          (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 30 / 360)
                 # a:y b:z c:x
                 print("calibrate")
             time.sleep(1)
-flight.land()
+    # else:
+    #     break
+# flight.land()
