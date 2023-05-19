@@ -54,10 +54,10 @@ class Recognizer:
         self.current_gesture = None
         self.stable_count = 0
     
-    def step(self):
-        is_grabbed, frame = self.video.read()
-        if not is_grabbed:
-            return
+    def step(self, frame):
+        #is_grabbed, frame = self.video.read()
+        #if not is_grabbed:
+        #     return
 
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
 
@@ -123,13 +123,13 @@ class Recognizer:
             cv2.putText(frame, '{} fps'.format(round(1000 / (cur_time - self.fps_last_time), 2)), (200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (255, 102, 102), 2)
             self.fps_last_time = cur_time
             
-        if self.display:
-            cv2.imshow('video', frame)
+        #if self.display:
+        #    cv2.imshow('video', frame)
 
         return self.current_gesture, self.stable_count
 
     def release(self):
-        self.release()
+        self.video.release()
 
         if self.display:
             cv2.destroyWindow('video')
