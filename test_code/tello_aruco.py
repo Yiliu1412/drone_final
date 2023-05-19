@@ -9,6 +9,8 @@ aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 aruco_params = cv2.aruco.DetectorParameters()
 drone = Drone()
 drone.initialize()
+print(drone.get_drone_version())
+print(drone.get_sn())
 flight: Flight = drone.flight
 camera: Camera = drone.camera
 camera.start_video_stream(display = True)
@@ -20,11 +22,11 @@ camera.start_video_stream(display = True)
 flight.takeoff()
 while True:
     image = camera.read_cv2_image(strategy = "newest")
-    corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters=aruco_params)
-    cX, cY = (0,0)
-    topCenter = [0,0]
-    bottomCenter = [0,0]
-    times=3
+    corners, ids, rejected = cv2.aruco.detectMarkers(image, aruco_dict, parameters = aruco_params)
+    cX, cY = (0, 0)
+    topCenter = [0, 0]
+    bottomCenter = [0, 0]
+    times = 3
     camera_center = (640, 360)
 
     if len(corners) > 0:
@@ -45,7 +47,7 @@ while True:
             # Draw ArUCo center (x, y)
             cX = int((topLeft[0] + bottomRight[0]) / 2.0)
             cY = int((topLeft[1] + bottomRight[1]) / 2.0)
-            topCenter = ((topLeft[0]+topRight[0])/2, (topLeft[1]+topRight[1])/2)
+            topCenter = ((topLeft[0] + topRight[0]) / 2, (topLeft[1] + topRight[1]) / 2)
             # bottomCenter = ((bottomRight[0]+bottomLeft[0])/2, (bottomRight[1]+bottomLeft[1])/2)
             # print(cX, cY)
             # cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
@@ -55,10 +57,11 @@ while True:
             # print("[INFO] ArUco marker ID: {}".format(markerID))
             # cv2.imshow("Image", image)
             # cv2.waitKey(0)
-    if (cX-camera_center[0])**2+(camera_center[1]-cY+times*(bottomCenter[1]-topCenter[1]))**2 <= 10000:
-        flight.rc(0,0,1)
+    if (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
+        flight.rc(0, 0, 10)
         break
     else:
-        flight.rc((camera_center[0]-cX)/640, (camera_center[1]-cY+times*(bottomCenter[1]-topCenter[1]))/360, 1)
+        flight.rc((camera_center[0] - cX) * 50 / 640,
+                  (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360, 10)
         # a:y b:z c:x
 flight.land()
