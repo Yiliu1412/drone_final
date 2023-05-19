@@ -37,12 +37,14 @@ while True:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
             # TOP-LEFT, TOP-RIGHT, BOTTOM-RIGHT, BOTTOM-LEFT
-            # if currentCount == 0 and markerID != gesture:
-            #     continue
-            # elif currentCount == 1 and markerID != 30:
-            #     continue
-            if markerID != 20:
+            if currentCount == 0 and markerID != 20:
                 continue
+            elif currentCount == 1 and markerID != 30:
+                continue
+            elif currentCount == 2:
+                flight.land()
+                drone.close()
+                exit(0)
 
             corners = markerCorner.reshape((4, 2))
             (topLeft, topRight, bottomRight, bottomLeft) = corners
@@ -78,9 +80,7 @@ while True:
                 flight.rc(-5, 20, 0)
                 print('forward')
                 delay(2)
-                flight.land()
                 currentCount = currentCount + 1
-                exit(0)
             else:
                 flight.rc((cX - camera_center[0]) * 40 / 640, 0,
                           (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 30 / 360)
