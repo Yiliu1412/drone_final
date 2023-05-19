@@ -1,9 +1,10 @@
-#import recognition
 import time
+import recognition
 from robomaster import config
 from robomaster.robot import Drone
 from robomaster.flight import Flight
 from robomaster.camera import Camera
+import cv2
 import cv2.aruco
 import numpy as np
 
@@ -23,9 +24,12 @@ camera: Camera = drone.camera
 camera.start_video_stream(display = True)
 
 flight.takeoff().wait_for_completed()
-
-# rcg = recognition.Recognizer()
-# gesture, finger = rcg.step()
+while True:
+    image = camera.read_cv2_image(strategy = "newest")
+    rcg = recognition.Recognizer(display = True)
+    gesture, finger = rcg.step(image) # // 3: right and left, % 3 :1, 2, 3
+    if gesture is not None:
+        break
 
 while True:
     image = camera.read_cv2_image(strategy = "newest")
@@ -34,11 +38,11 @@ while True:
     topCenter = [0, 0]
     bottomCenter = [0, 0]
 
-    if len(corners) > 0 and currentCount != 2:
+    if len(corners) > 0:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
             # TOP-LEFT, TOP-RIGHT, BOTTOM-RIGHT, BOTTOM-LEFT
-            if currentCount == 0 and markerID != 20:
+            if currentCount == 0 and markerID != 10 * gesture + 10:
                 continue
             elif currentCount == 1 and markerID != 30:
                 continue
@@ -59,6 +63,7 @@ while True:
             cY = int((topLeft[1] + bottomRight[1]) / 2.0)
             topCenter = ((topLeft[0] + topRight[0]) / 2, (topLeft[1] + topRight[1]) / 2)
             bottomCenter = ((bottomRight[0] + bottomLeft[0]) / 2, (bottomRight[1] + bottomLeft[1]) / 2)
+            break
             # print(cX, cY)
             # cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
             # cv2.circle(image, (camera_center[0], camera_center[1]), 4, (0, 0, 255), -1)
@@ -67,27 +72,27 @@ while True:
             # print("[INFO] ArUco marker ID: {}".format(markerID))
             # cv2.imshow("Image", image)
             # cv2.waitKey(0)
-            print('bottomCenter: {}, topCenter: {}'.format(bottomCenter[1], topCenter[1]))
-            print('cX: {}, cY: {}\nheight: {}\n'.format(cX, cY, bottomCenter[1] - topCenter[1]))
-            print("Objective: {} {}".format(cX, cY - times * (bottomCenter[1] - topCenter[1])))
-            print(
-                (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2)
+    if currentCount == 0 or currentCount == 1:
+        print('bottomCenter: {}, topCenter: {}'.format(bottomCenter[1], topCenter[1]))
+        print('cX: {}, cY: {}\nheight: {}\n'.format(cX, cY, bottomCenter[1] - topCenter[1]))
+        print("Objective: {} {}".format(cX, cY - times * (bottomCenter[1] - topCenter[1])))
+        print(
+            (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2)
 
-            if (cX - camera_center[0]) ** 2 + (
-                    camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
-                flight.rc(-5, 35, 0)
-                print('forward')
-                time.sleep(5)
-                currentCount = currentCount + 1
-
-            else:
-                flight.rc((cX - camera_center[0]) * 45 / 480, 0,
-                          (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 30 / 360)
-                # a:y b:z c:x
-                print("calibrate")
-            time.sleep(1)
-            break
-    else:
+        if (cX - camera_center[0]) ** 2 + (
+                camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
+            flight.rc(-5, 35, 0)
+            print('forward')
+            time.sleep(5)
+            currentCount = currentCount + 1
+            flight.stop()
+        else:
+            flight.rc((cX - camera_center[0]) * 60 / 480, 0,
+                      (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 30 / 360)
+            # a:y b:z c:x
+            print("calibrate")
+        time.sleep(1)
+    elif currentCount == 2:
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, np.array([0, 50, 50]),
                            np.array([10, 255, 255])) + cv2.inRange(hsv, np.array([170, 50, 50]),
@@ -125,11 +130,11 @@ while True:
         # cv2.waitKey()
         # cv2.destroyAllWindows()
         if abs(x - camera_center[0]) <= 100:
-            flight.rc(0, 20, 0)
-            time.sleep(4)
-            flight.rotate(90).wait_for_completed()
+            flight.rc(0, 30, 0)
+            time.sleep(7)
+            flight.rotate(80).wait_for_completed()
             currentCount = currentCount + 1
-            flight.land()
+            flight.stop()
         else:
             flight.rc((x - camera_center[0]) * 45 / 480, 0, 0)
 # flight.land()
