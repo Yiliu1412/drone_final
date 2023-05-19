@@ -20,6 +20,7 @@ flight: Flight = drone.flight
 camera: Camera = drone.camera
 camera.start_video_stream(display = True)
 
+flight.takeoff()
 while True:
     image = camera.read_cv2_image(strategy = "newest")
     size = (1280, 720) # delete when using frame
@@ -33,6 +34,8 @@ while True:
         ids = ids.flatten()
         for (markerCorner, markerID) in zip(corners, ids):
             # TOP-LEFT, TOP-RIGHT, BOTTOM-RIGHT, BOTTOM-LEFT
+            if markerID != 10 :
+                continue
             corners = markerCorner.reshape((4, 2))
             (topLeft, topRight, bottomRight, bottomLeft) = corners
             topRight = (int(topRight[0]), int(topRight[1]))
@@ -63,13 +66,13 @@ while True:
             print((cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2)
 
             if (cX - camera_center[0]) ** 2 + (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) ** 2 <= 10000:
-                #flight.rc(0, 0, 10)
+                flight.rc(0, 10, 0)
                 print('forward')
 
             else:
-                # flight.rc((camera_center[0] - cX) * 50 / 640,
-                #           (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360, 10)
+                flight.rc((cX - camera_center[0]) * 50 / 640, 0,
+                            (camera_center[1] - cY + times * (bottomCenter[1] - topCenter[1])) * 50 / 360)
                 # a:y b:z c:x
                 print("calibrate")
             time.sleep(1)
-# flight.land()
+flight.land()
