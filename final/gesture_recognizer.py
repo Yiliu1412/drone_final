@@ -47,10 +47,10 @@ class GestureRecognizer:
     the class to recognize the gesture
     '''
 
-    def __init__(self, mode = IMAGE, max_hand = 2, model = MODEL_PATH, interval = INTERVAL_MS, debug = False):
+    def __init__(self, mode = VIDEO, max_hand = 2, model = MODEL_PATH, interval = INTERVAL_MS, debug = False):
         '''
         @constructor GestureRecognizer
-        @param {IMAGE | VIDEO} [mode] - recognize the gesture in image or video mode, defaults to IMAGE
+        @param {VIDEO | IMAGE} [mode] - recognize the gesture in image or video mode, defaults to VIDEO
         @param {int} [max_hand] - the maximum hand allowed in the result, defaults to 2
         @param {str} [model] - the path of recognizer model, defaults to MODEL_PATH
         @param {int} [interval] - the recognize interval in milliseconds, defaults to 700
@@ -179,3 +179,4 @@ if __name__ == '__main__':
             break
     cv2.destroyWindow('video')
     re.release()
+
