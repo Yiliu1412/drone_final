@@ -29,16 +29,18 @@ IMAGE = mp.tasks.vision.RunningMode.IMAGE
 VIDEO = mp.tasks.vision.RunningMode.VIDEO
 
 class GestureRecognizer:
-    def __init__(self, mode=IMAGE, max_hand=2, model=MODEL_PATH, interval=INTERVAL_MS, debug=False, display=False):
+    def __init__(self, mode = IMAGE, max_hand = 2, model = MODEL_PATH, interval = INTERVAL_MS, debug = False):
         self.debug = debug
-        self.display = display
         self.interval = interval
         self.mode = mode
         
         options = mp.tasks.vision.GestureRecognizerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path=model),
-            running_mode=mode,
-            num_hands=max_hand
+            base_options = mp.tasks.BaseOptions(model_asset_path = model),
+            running_mode = mode,
+            num_hands = max_hand,
+            min_hand_detection_confidence = 0.5,
+            min_hand_presence_confidence = 0.5,
+            min_tracking_confidence = 0.5
         )
 
         self.recognizer = mp.tasks.vision.GestureRecognizer.create_from_options(options)
@@ -69,7 +71,7 @@ class GestureRecognizer:
             hand_index = result.handedness[i][0].index
             finger_state[hand_index] = [landmarks[tip].y < landmarks[tip - 2].y for tip in FINGER_TIP[1:]]
 
-            if self.debug and self.display:
+            if self.debug:
                 height, width = frame.shape[:2]
                 positions = [(int(landmark.x * width), int(landmark.y * height)) for landmark in landmarks]
                 for point1, point2 in mp.solutions.hands.HAND_CONNECTIONS:
@@ -77,7 +79,7 @@ class GestureRecognizer:
                 for position in positions:
                     cv2.circle(frame, position, 5, HAND_COLOR[hand_index], -1)
         
-        if self.debug and self.display:
+        if self.debug:
             for i in range(2):
                 if finger_state[i] == None:
                     continue
@@ -113,7 +115,7 @@ class GestureRecognizer:
             self.current_gesture = possible_gesture if possible_gesture < 6 and self.gesture_counter[possible_gesture] > 0 else None
             self.gesture_counter = [0 for _ in range(7)]
         
-        if self.debug and self.display:
+        if self.debug:
             text = str(self.stable_count)
             text += 'none' if self.current_gesture == None else '{}{}'.format('right' if self.current_gesture // 3 == 0 else 'left', self.current_gesture % 3 + 1)
             cv2.putText(frame, text, (40, 200), cv2.FONT_HERSHEY_PLAIN, 2, (255, 102, 102), 2)
@@ -121,15 +123,11 @@ class GestureRecognizer:
             cur_time = self.timer.get_ms()
             cv2.putText(frame, '{} fps'.format(round(1000 / (cur_time - self.fps_last_time), 2)), (200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (255, 102, 102), 2)
             self.fps_last_time = cur_time
-            
-        if self.display:
-            cv2.imshow('video', frame)
 
         return self.current_gesture, self.stable_count
-
+    
     def release(self):
-        if self.display:
-            cv2.destroyWindow('video')
+        self.recognizer.close()
 
 if __name__ == '__main__':
     re = GestureRecognizer(display=True, debug=True, mode=VIDEO)
@@ -140,10 +138,11 @@ if __name__ == '__main__':
             continue
         
         gesture, count = re.step(frame)
+        cv2.imshow('video', frame)
         print('none' if gesture == None else '{} {} {}'.format(count, 'right' if gesture // 3 == 0 else 'left', gesture % 3 + 1))
 
         if cv2.waitKey(1) & 0xff == ord('q'):
             break
-    video.release()
+    cv2.destroyWindow('video')
     re.release()
 
