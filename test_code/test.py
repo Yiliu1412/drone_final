@@ -7,6 +7,7 @@ from robomaster.camera import Camera
 import cv2
 import cv2.aruco
 import numpy as np
+from robomaster.protocol import TextProtoDrone, TextMsg
 
 DEBUG = True
 
@@ -25,11 +26,12 @@ ARUCO_PARAM = cv2.aruco.DetectorParameters()
 
 
 class ArucoResult:
-    def __init__(self, corner):
+    def __init__(self, corner, aruco_id):
         self.top_left = corner[0]
         self.top_right = corner[1]
         self.bottom_right = corner[2]
         self.bottom_left = corner[3]
+        self.aruco_id = aruco_id
 
     def get_center(self):
         return ((self.top_left[0] + self.bottom_right[0]) / 2, (self.top_left[1] + self.bottom_right[1]) / 2)
@@ -41,24 +43,27 @@ class ArucoResult:
         return bottom_center[1] - top_center[1]
 
 
-def recognize_aruco(image, code):
+def recognize_aruco(image, code=None):
     corners, ids, _ = cv2.aruco.detectMarkers(image, ARUCO_DICT, parameters=ARUCO_PARAM)
     if len(corners) <= 0:
         return None
     ids = ids.flatten()
 
     result = []
-    for corner, id in zip(corners, ids):
+    for corner, aruco_id in zip(corners, ids):
         corner = corner.reshape((4, 2))
-        if code != None and id == code:
-            return [ArucoResult(corner)]
-    #     result.append(ArucoResult(corner))
-    # return result
+        if code is not None and aruco_id == code:
+            return [ArucoResult(corner, aruco_id)]
+        result.append(ArucoResult(corner, aruco_id))
+    if code is None and len(result) > 0:
+        return result
     return None
 
 
 code_scale = 2.5
 camera_center = (480, 360)
+bottom_camera_center = (150, 150)
+aruco_distance = 60
 
 config.LOCAL_IP_STR = '192.168.10.2'
 
@@ -145,7 +150,7 @@ while True:
     # circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 30, param1=None, param2=30, minRadius=30, maxRadius=300)
     # cx, cy, r = circles[0][0]
     if distance_square <= 100 ** 2:
-    # if abs(cx - camera_center[0]) <= 100:
+        # if abs(cx - camera_center[0]) <= 100:
         if DEBUG: print('[debug] forward')
         flight.rc(0, 50, 15)  ##
         while True:
@@ -185,11 +190,28 @@ while True:
         flight.rc((x - camera_center[0]) * 35 / 480, 0, 0)
 
 print('[info] land')
+proto = TextProtoDrone()
+proto.text_cmd = 'downvision 1'
+msg = TextMsg(proto)
+drone._client.send_sync_msg(msg)
 while True:
     image = camera.read_cv2_image(strategy='newest')
-    result = recognize_aruco(image, 30)[0]
+    result = recognize_aruco(image)
+    if result is None:
+        pass ##
+    result = result[0]
     cx, cy = result.get_center()
-    break
-
+    aruco_id = result.aruco_id
+    if aruco_id == gesture % 3 + 1:
+        distance_square = (cx - bottom_camera_center[0]) ** 2 + (bottom_camera_center[1] - cy) ** 2
+        if distance_square <= 20 ** 2:
+            flight.stop()
+            break
+        flight.rc((cx - bottom_camera_center[0]) / 150, (bottom_camera_center[1] - cy) / 150, 0)
+        time.sleep(0.5)
+    elif aruco_id < gesture % 3 + 1:
+        flight.right(aruco_distance).wait_for_completed(timeout=5)
+    else:
+        flight.left(aruco_distance).wait_for_completed(timeout=5)
 flight.land()
 drone.close()
