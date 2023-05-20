@@ -93,7 +93,7 @@ while True:
         exit(0)
 
     print(gesture, count)
-    if gesture != None and count >= 2:
+    if gesture is not None and count >= 2:
         break
 cv2.destroyWindow('video')
 #recognizer.release()
@@ -122,7 +122,6 @@ while True:
         flight.rc((cx - camera_center[0]) * 45 / 480, 0,
                   (camera_center[1] - cy + code_scale * result.get_height()) * 30 / 360)
         time.sleep(1)
-    result = recognize_aruco(image, 30)
 
 print('[info] step 2')
 flight.down(50).wait_for_completed()
@@ -138,20 +137,19 @@ while True:
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, np.array([11, 43, 46]), np.array([25, 255, 255]))
     circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 30, param1=None, param2=30, minRadius=30, maxRadius=300)
-    x, y, r = circles[0][0]
+    cx, cy, r = circles[0][0]
     # if distance_square <= 100 ** 2:
-    if abs(x - camera_center[0]) <= 100:
+    if abs(cx - camera_center[0]) <= 100:
         if DEBUG: print('[debug] forward')
         flight.rc(0, 35, 0)  ##
         time.sleep(5)  ##
         flight.stop()
         break
     else:
-        if DEBUG: print('[debug] calibrate ', distance_square)
+        # if DEBUG: print('[debug] calibrate ', distance_square)
         flight.rc((cx - camera_center[0]) * 45 / 480, 0,
                   (camera_center[1] - cy + code_scale * result.get_height()) * 30 / 360)
         time.sleep(1)
-    result = recognize_aruco(image, 30)
 
 print('[info] step 3')
 while True:
@@ -175,7 +173,7 @@ while True:
     image = camera.read_cv2_image(strategy='newest')
     result: ArucoResult = recognize_aruco(image, 30)[0]
     cx, cy = result.get_center()
-    pass
+    break
 
 flight.land()
 drone.close()
