@@ -128,7 +128,7 @@ while True:
             result = recognize_aruco(image, 30 - 10 * (gesture // 3 + 1))
             if result is None:
                 break
-        time.sleep(2.5)
+        time.sleep(3)
         flight.stop()
         if gesture // 3 == 0:
             flight.left(120).wait_for_completed(timeout=5)
@@ -194,6 +194,11 @@ while True:
         flight.rc((x - camera_center[0]) * 35 / 480, 0, 0)
 
 print('[info] land')
+gesture = 2
+flight.rc(0, 0, 30)
+time.sleep(5.5)
+flight.stop()
+flight.rc(10, 45, 0)
 proto = TextProtoDrone()
 proto.text_cmd = 'downvision 1'
 msg = TextMsg(proto)
@@ -204,30 +209,37 @@ while True:
     result = recognize_aruco(image)
     if result is not None:
         flight.stop().wait_for_completed(timeout=2)
-        flight.rotate(45).wait_for_completed(timeout=5)
-        
+        time.sleep(1)
+        flight.backward(40).wait_for_completed(timeout=5)
+        flight.rotate(45).wait_for_completed(timeout=3)
+        break
+
 while True:
     image = camera.read_cv2_image(strategy='newest')
     result = recognize_aruco(image)
-    if result is None:
-        flight.forward(30).wait_for_completed(timeout=5)
-        continue
+    # if result is None:
+    #     flight.forward(30).wait_for_completed(timeout=5)
+    #     continue
+    #
     distance_square = 9999999
     for i in result:
         if distance_square > (i.get_center()[0] - bottom_camera_center[0]) ** 2 + (i.get_center()[1] - bottom_camera_center[1]) ** 2:
-            cx, cy = result.get_center()
+            cx, cy = i.get_center()
             aruco_id = i.aruco_id
             distance_square = (i.get_center()[0] - bottom_camera_center[0]) ** 2 + (i.get_center()[1] - bottom_camera_center[1]) ** 2
-    if aruco_id == gesture % 3 + 1:
-        distance_square = (cx - bottom_camera_center[0]) ** 2 + (bottom_camera_center[1] - cy) ** 2
-        if distance_square <= 20 ** 2:
-            flight.stop()
+
+    distance_square = (cx - bottom_camera_center[0]) ** 2 + (bottom_camera_center[1] - cy) ** 2
+    if distance_square <= 20 ** 2:
+        if aruco_id == gesture % 3 + 1:
+            flight.land()
             break
-        flight.rc((cx - bottom_camera_center[0]) * 20 / 160, (bottom_camera_center[1] - cy) * 20 / 120, 0)
-        time.sleep(0.5)
-    elif aruco_id < gesture % 3 + 1:
-        flight.right(aruco_distance).wait_for_completed(timeout=5)
+        elif aruco_id < gesture % 3 + 1:
+            flight.right(aruco_distance).wait_for_completed(timeout=3)
+        else:
+            flight.left(aruco_distance).wait_for_completed(timeout=3)
+        continue
     else:
-        flight.left(aruco_distance).wait_for_completed(timeout=5)
+        flight.rc((bottom_camera_center[1] - cy) * 20 / 120, (bottom_camera_center[0] - cx) * 20 / 160, 0)
+        time.sleep(0.5)
 flight.land()
 drone.close()
