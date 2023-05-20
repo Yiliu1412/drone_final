@@ -52,9 +52,10 @@ def recognize_aruco(image, code):
         corner = corner.reshape((4, 2))
         if code != None and id == code:
             return [ArucoResult(corner)]
-        result.append(ArucoResult(corner))
-    return result
-
+    #     result.append(ArucoResult(corner))
+    # return result
+    return None
+    
 
 code_scale = 2.5
 camera_center = (480, 360)
@@ -111,7 +112,12 @@ while True:
     if distance_square <= 100 ** 2:
         if DEBUG: print('[debug] forward')
         flight.rc(0, 35, 0)  ##
-        time.sleep(6.5)  ##
+        while True:
+            image = camera.read_cv2_image(strategy='newest')
+            result = recognize_aruco(image, 10 * (gesture // 3 + 1))
+            if result is None:
+                break
+        time.sleep(3.5)
         flight.stop()
         if gesture // 3 == 0:
             flight.left(150).wait_for_completed()
@@ -124,7 +130,7 @@ while True:
         time.sleep(1)
 
 print('[info] step 2')
-flight.down(50).wait_for_completed()
+# flight.down(50).wait_for_completed()
 while True:
     image = camera.read_cv2_image(strategy='newest')
     # result = recognize_aruco(image, 30)
@@ -147,8 +153,10 @@ while True:
         break
     else:
         # if DEBUG: print('[debug] calibrate ', distance_square)
-        flight.rc((cx - camera_center[0]) * 45 / 480, 0,
-                  (camera_center[1] - cy + code_scale * result.get_height()) * 30 / 360)
+        # flight.rc((cx - camera_center[0]) * 45 / 480, 0,
+        #           (camera_center[1] - cy + code_scale * result.get_height()) * 30 / 360)
+        # time.sleep(1)
+        flight.rc((cx - camera_center[0]) * 45 / 480, 0, 0)
         time.sleep(1)
 
 print('[info] step 3')
