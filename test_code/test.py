@@ -87,6 +87,11 @@ camera.start_video_stream(display=True)
 flight.takeoff().wait_for_completed(timeout=5)
 
 # wait or gesture
+
+proto = TextProtoDrone()
+proto.text_cmd = 'downvision 0'
+msg = TextMsg(proto)
+drone._client.send_sync_msg(msg)
 while True:
     image = camera.read_cv2_image(strategy='newest')
     gesture, count = recognizer.step(image)  # // 3: right and left, % 3 :1, 2, 3
@@ -178,16 +183,12 @@ while True:
     if x is None:
         continue
     if abs(x - camera_center[0]) <= 100:
-        flight.rc(0, 35, 0)  ##
-        while True:
-            image = camera.read_cv2_image(strategy='newest')
-            x, y, r = find_circle_position(image)
-            if r >= 250:
-                break
-
-        time.sleep(7)  ##
-        flight.rotate(45).wait_for_completed(timeout=5)
-        flight.stop()
+        flight.rc(0, 45, 0)  ##
+        # while True:
+        #     image = camera.read_cv2_image(strategy='newest')
+        #     x, y, r = find_circle_position(image)
+        #     if r >= 260 or r is None:
+        #         break
         break
     else:
         flight.rc((x - camera_center[0]) * 35 / 480, 0, 0)
@@ -197,6 +198,14 @@ proto = TextProtoDrone()
 proto.text_cmd = 'downvision 1'
 msg = TextMsg(proto)
 drone._client.send_sync_msg(msg)
+
+while True:
+    image = camera.read_cv2_image(strategy='newest')
+    result = recognize_aruco(image)
+    if result is not None:
+        flight.stop().wait_for_completed(timeout=2)
+        flight.rotate(45).wait_for_completed(timeout=5)
+        
 while True:
     image = camera.read_cv2_image(strategy='newest')
     result = recognize_aruco(image)
