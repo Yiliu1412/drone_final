@@ -77,7 +77,7 @@ camera: Camera = drone.camera
 
 camera.start_video_stream(display=True)
 
-flight.takeoff().wait_for_completed()
+flight.takeoff().wait_for_completed(timeout=5)
 
 # wait or gesture
 while True:
@@ -90,7 +90,7 @@ while True:
 
     test_count = test_count + 1
     if test_count == 500:
-        flight.land().wait_for_completed()
+        flight.land().wait_for_completed(timeout=5)
         exit(0)
 
     print(gesture, count)
@@ -120,7 +120,7 @@ while True:
         time.sleep(2.5)
         flight.stop()
         if gesture // 3 == 0:
-            flight.left(150).wait_for_completed()
+            flight.left(150).wait_for_completed(timeout=5)
             flight.stop()
         break
     else:
@@ -130,7 +130,7 @@ while True:
         time.sleep(1)
 
 print('[info] step 2')
-flight.down(50).wait_for_completed()
+flight.down(50).wait_for_completed(timeout=5)
 while True:
     image = camera.read_cv2_image(strategy='newest')
     result = recognize_aruco(image, 30)
@@ -166,7 +166,7 @@ while True:
 
 print('[info] step 3')
 
-flight.left(180).wait_for_completed()
+flight.left(180).wait_for_completed(timeout=5)
 flight.rotate(35)
 while True:
     image = camera.read_cv2_image(strategy='newest')
@@ -176,7 +176,7 @@ while True:
         flight.rc(0, 35, 0)  ##
         time.sleep(7)  ##
 
-        flight.rotate(45).wait_for_completed()
+        flight.rotate(45).wait_for_completed(timeout=5)
         flight.stop()
         image = camera.read_cv2_image(strategy='newest')
         cv2.imwrite('land.jpg', image)
