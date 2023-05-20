@@ -49,15 +49,17 @@ def recognize_aruco(image, code=None):
         return None
     ids = ids.flatten()
 
-    result = []
-    for corner, aruco_id in zip(corners, ids):
-        corner = corner.reshape((4, 2))
-        if code is not None and aruco_id == code:
-            return [ArucoResult(corner, aruco_id)]
-        result.append(ArucoResult(corner, aruco_id))
-    if code is None and len(result) > 0:
+    if code != None:
+        for corner, id in zip(corners, ids):
+            corner = corner.reshape((4, 2))
+            if id == code:
+                return ArucoResult(corner, id)
+    else:
+        result = []
+        for corner, id in zip(corners, ids):
+            corner = corner.reshape((4, 2))
+            result.append(ArucoResult(corner, id))
         return result
-    return None
 
 
 code_scale = 2.5
@@ -110,7 +112,6 @@ while True:
     result = recognize_aruco(image, 30 - 10 * (gesture // 3 + 1))
     if result is None:
         continue
-    result = result[0]
     cx, cy = result.get_center()
 
     distance_square = (cx - camera_center[0]) ** 2 + (camera_center[1] - cy + code_scale * result.get_height()) ** 2
@@ -141,7 +142,6 @@ while True:
     result = recognize_aruco(image, 30)
     if result is None:
         continue
-    result = result[0]
     cx, cy = result.get_center()
     distance_square = (cx - camera_center[0]) ** 2 + (camera_center[1] - cy + code_scale * result.get_height()) ** 2
 
@@ -170,22 +170,24 @@ while True:
         # time.sleep(1)
 
 print('[info] step 3')
-
 flight.left(180).wait_for_completed(timeout=5)
 flight.rotate(35).wait_for_completed(timeout=5)
 while True:
     image = camera.read_cv2_image(strategy='newest')
     x, y, r = find_circle_position(image)
-    if x is None or y is None or r is None:
+    if x is None:
         continue
     if abs(x - camera_center[0]) <= 100:
         flight.rc(0, 35, 0)  ##
-        time.sleep(7)  ##
+        while True:
+            image = camera.read_cv2_image(strategy='newest')
+            x, y, r = find_circle_position(image)
+            if r >= 250:
+                break
 
+        time.sleep(7)  ##
         flight.rotate(45).wait_for_completed(timeout=5)
         flight.stop()
-        image = camera.read_cv2_image(strategy='newest')
-        cv2.imwrite('land.jpg', image)
         break
     else:
         flight.rc((x - camera_center[0]) * 35 / 480, 0, 0)
@@ -195,16 +197,18 @@ proto = TextProtoDrone()
 proto.text_cmd = 'downvision 1'
 msg = TextMsg(proto)
 drone._client.send_sync_msg(msg)
-test_image = camera.read_cv2_image(strategy='newest')
-cv2.imwrite('test_image.jpg', test_image)
 while True:
     image = camera.read_cv2_image(strategy='newest')
     result = recognize_aruco(image)
     if result is None:
-        pass ##
-    result = result[0]
-    cx, cy = result.get_center()
-    aruco_id = result.aruco_id
+        flight.forward(30).wait_for_completed(timeout=5)
+        continue
+    distance_square = 9999999
+    for i in result:
+        if distance_square > (i.get_center()[0] - bottom_camera_center[0]) ** 2 + (i.get_center()[1] - bottom_camera_center[1]) ** 2:
+            cx, cy = result.get_center()
+            aruco_id = i.aruco_id
+            distance_square = (i.get_center()[0] - bottom_camera_center[0]) ** 2 + (i.get_center()[1] - bottom_camera_center[1]) ** 2
     if aruco_id == gesture % 3 + 1:
         distance_square = (cx - bottom_camera_center[0]) ** 2 + (bottom_camera_center[1] - cy) ** 2
         if distance_square <= 20 ** 2:
