@@ -21,3 +21,15 @@ DroneFinal
 1. 大概能跑完全程
 2. step 2 添加黄色圈识别
 3. 还需研究降落部分
+
+# 2023年5月21日4:09:30
+1. [PID算法调用的库](https://github.com/m-lundberg/simple-pid)
+2. 实现了使用PID算法+timer+counter的地面ArUco码识别，大大提高了精度
+
+# 2023年5月21日17:06:51
+三次试飞
+
+
+All Last
+---
+
