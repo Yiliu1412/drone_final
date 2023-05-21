@@ -17,6 +17,7 @@ DroneFinal
 
 # 2023年5月17日21:07:24
 1. [vision](https://robomaster-dev.readthedocs.io/zh_CN/latest/python_sdk/robomaster.html#module-robomaster.vision)
+2. [mediapipe实现手势识别](https://google.github.io/mediapipe/)
 
 # 2023年5月19日20:34:32
 1. [椭圆识别](https://blog.csdn.net/qq_33950926/article/details/111409635)
